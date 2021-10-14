@@ -1,7 +1,7 @@
 {
-    "name": "xyz",
+    "name": "local-exec",
     "resources": {
-        "xyz:index:StaticPage": {
+        "local-exec:index:StaticPage": {
             "isComponent": true,
             "inputProperties": {
                 "indexContent": {
@@ -37,7 +37,7 @@
         },
         "go": {
             "generateResourceContainerTypes": true,
-            "importBasePath": "github.com/pulumi/pulumi-xyz/sdk/go/xyz"
+            "importBasePath": "github.com/modern-energy/pulumi-local-exec/sdk/go/local-exec"
         },
         "nodejs": {
             "dependencies": {
