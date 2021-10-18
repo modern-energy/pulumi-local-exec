@@ -1,5 +1,5 @@
 {
-    "name": "@pulumi/local-exec",
+    "name": "@modern-energy/pulumi-local-exec",
     "version": "${VERSION}",
     "scripts": {
         "build": "tsc"

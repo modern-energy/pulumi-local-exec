@@ -1,31 +1,44 @@
 {
     "name": "local-exec",
     "resources": {
-        "local-exec:index:StaticPage": {
-            "isComponent": true,
+        "local-exec:index:Command": {
+            "isComponent": false,
             "inputProperties": {
-                "indexContent": {
+                "command": {
                     "type": "string",
-                    "description": "The HTML content for index.html."
+                    "description": "The string representation of the command to invoke, with space-separated arguments"
+                },
+                "timeout": {
+                    "type": "integer",
+                    "description": "The maximum number of milliseconds the command is allowed to run, before it fails with a timeout."
+                },
+                 "shell": {
+                    "type": "string",
+                    "description": "Shell to execute the command with. Defaults to /bin/sh on *nix."
+                 },
+                "cwd": {
+                    "type": "string",
+                    "description": "The working directory for the shell. Defaults to the current process's directory."
+                },
+                "env": {
+                    "type": "object",
+                    "description": "Environment variables to supply to the subprocess."
                 }
             },
             "requiredInputs": [
-                "indexContent"
+                "command"
             ],
             "properties": {
-                "bucket": {
-                    "$ref": "/aws/v4.0.0/schema.json#/resources/aws:s3%2Fbucket:Bucket",
-                    "description": "The bucket resource."
-                },
-                "websiteUrl": {
+                "stdout": {
                     "type": "string",
-                    "description": "The website URL."
+                    "description": "The processes standard output"
+                },
+                "stderr": {
+                    "type": "string",
+                    "description": "The processes standard errror"
                 }
             },
-            "required": [
-                "bucket",
-                "websiteUrl"
-            ]
+            "required": ["stdout", "stderr"]
         }
     },
     "language": {
@@ -40,6 +53,7 @@
             "importBasePath": "github.com/modern-energy/pulumi-local-exec/sdk/go/local-exec"
         },
         "nodejs": {
+            "packageName": "@modern-energy/pulumi-local-exec",
             "dependencies": {
                 "@pulumi/aws": "^4.0.0"
             },

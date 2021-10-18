@@ -5,18 +5,18 @@ import * as pulumi from "@pulumi/pulumi";
 import * as utilities from "./utilities";
 
 // Export members:
+export * from "./command";
 export * from "./provider";
-export * from "./staticPage";
 
 // Import resources to register:
-import { StaticPage } from "./staticPage";
+import { Command } from "./command";
 
 const _module = {
     version: utilities.getVersion(),
     construct: (name: string, type: string, urn: string): pulumi.Resource => {
         switch (type) {
-            case "local-exec:index:StaticPage":
-                return new StaticPage(name, <any>undefined, { urn })
+            case "local-exec:index:Command":
+                return new Command(name, <any>undefined, { urn })
             default:
                 throw new Error(`unknown resource type ${type}`);
         }
