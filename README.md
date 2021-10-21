@@ -12,12 +12,17 @@ Add the package to your Pulumi project.
 - Node: `@modern-energy/pulumi-local-exec`
 - Python: `pulumi_local_exec`
 
-Make sure you are logged into AWS CodeArtifact. See the instructions
-in the [Shared Infrastructure](https://github.com/modern-energy/infrastructure#artifact-repositories) repo.
+This package is hosted on Modern Energy's shared artifact repositories.
 
-You may be prompted to install the plugin. If so, you will need to run
-the command that Pulumi prompts you with, supplying in addition a
-`--server`parameter and giving it the value `https://s3.amazonaws.com/packages.modern.energy/public/pulumi-local-exec/`
+Make sure you are logged into AWS CodeArtifact. See the instructions
+in the
+[Shared Infrastructure](https://github.com/modern-energy/infrastructure#artifact-repositories)
+repo.
+
+You may be prompted to install the plugin binaries. If so, you will
+need to run the command that Pulumi prompts you with, supplying in
+addition a `--server`parameter and giving it the value
+`https://s3.amazonaws.com/packages.modern.energy/public/pulumi-local-exec/`
 
 For example:
 
@@ -53,7 +58,7 @@ re-created, and the command will not be re-evaluated.
 
 ### Typescript Example
 
-```
+```typescript
 import * as local_exec from "@modern-energy/pulumi-local-exec";
 
 const cmd = new local_exec.Command("test", {
@@ -66,7 +71,7 @@ exports.stdout = cmd.stdout
 
 ### Python Example
 
-```
+```python
 import pulumi_local_exec
 
 cmd = pulumi_local_exec.Command('test',
@@ -79,7 +84,7 @@ pulumi.export('output', cmd.stdout)
 ## Development
 
 This project is loosely based on Pulumi's [template for a Component
-Package] (https://github.com/pulumi/pulumi-component-provider-ts-boilerplate)
+Package](https://github.com/pulumi/pulumi-component-provider-ts-boilerplate)
 
 See the [Makefile](/Makefile) for the structure of the build.
 
