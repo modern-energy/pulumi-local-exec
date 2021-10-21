@@ -1,0 +1,6 @@
+name: simple-python
+runtime:
+  name: python
+  options:
+    virtualenv: venv
+description: Minimal demonstration of pulumi-local-exec in Python

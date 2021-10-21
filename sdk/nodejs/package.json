@@ -1,19 +1,17 @@
 {
     "name": "@modern-energy/pulumi-local-exec",
-    "version": "0.1.2",
+    "version": "${VERSION}",
     "scripts": {
         "build": "tsc"
     },
     "dependencies": {
-        "@pulumi/aws": "^4.0.0"
+        "@pulumi/pulumi": "^3.0.0"
     },
     "devDependencies": {
         "typescript": "^3.7.0"
     },
-    "peerDependencies": {
-        "@pulumi/pulumi": "latest"
-    },
     "pulumi": {
-        "resource": true
+        "resource": true,
+        "pluginDownloadURL": "https://s3.amazonaws.com/packages.modern.energy/public/pulumi-local-exec/"
     }
 }

@@ -12,7 +12,7 @@ class InstallPluginCommand(install):
     def run(self):
         install.run(self)
         try:
-            check_call(['pulumi', 'plugin', 'install', 'resource', 'local-exec', '${PLUGIN_VERSION}'])
+            check_call(['pulumi', 'plugin', 'install', 'resource', 'local-exec', '${PLUGIN_VERSION}', '--server', 'https://s3.amazonaws.com/packages.modern.energy/public/pulumi-local-exec/'])
         except OSError as error:
             if error.errno == errno.ENOENT:
                 print("""
@@ -47,7 +47,6 @@ setup(name='pulumi_local_exec',
       install_requires=[
           'parver>=0.2.1',
           'pulumi>=3.0.0,<4.0.0',
-          'pulumi-aws>=4.0.0,<5.0.0',
           'semver>=2.8.1'
       ],
       zip_safe=False)

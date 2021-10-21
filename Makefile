@@ -1,4 +1,4 @@
-VERSION         := 0.1.4
+VERSION         := 0.2.0
 
 PACK            := local-exec
 PROJECT         := github.com/modern-energy/pulumi-${PACK}
@@ -48,8 +48,11 @@ dist:: ensure
 	for TARGET in "darwin-amd64" "win-amd64" "linux-amd64"; do \
 		rm -rf ./bin && mkdir bin && \
 		npx nexe build/index.js -t "$${TARGET}-14.15.3" -o bin/${PROVIDER} && \
-		tar -czvf "dist/$(PROVIDER)-v$(VERSION)-$${TARGET}.tar.gz" bin; \
+		tar --directory bin -czvf "dist/$(PROVIDER)-v$(VERSION)-$${TARGET}.tar.gz" .; \
 	done
+
+publish_plugin:: dist
+	aws s3 sync --acl bucket-owner-full-control dist/ s3://packages.modern.energy/public/pulumi-local-exec/
 
 # Go SDK
 
@@ -94,8 +97,9 @@ build_nodejs_sdk:: gen_nodejs_sdk
 install_nodejs_sdk:: build_nodejs_sdk
 	yarn link --cwd ${WORKING_DIR}/sdk/nodejs/bin
 
-deploy_nodejs_sdk:: build_nodejs_sdk
-		yarn publish --cwd ${WORKING_DIR}/sdk/nodejs/bin --new-version ${VERSION} \
+publish_nodejs_sdk:: build_nodejs_sdk
+	echo "publishing to NPM..." && \
+    yarn publish --cwd ${WORKING_DIR}/sdk/nodejs/bin --new-version ${VERSION} \
                  --registry https://modern-energy-448597705503.d.codeartifact.us-east-1.amazonaws.com/npm/npm/
 
 
@@ -115,10 +119,10 @@ build_python_sdk:: gen_python_sdk
 		rm ./bin/setup.py.bak && \
 		cd ./bin && python3 setup.py build sdist
 
-deploy_python_sdk:: build_python_sdk
-	export TWINE_USERNAME=aws && \
+publish_python_sdk:: build_python_sdk
 	export TWINE_PASSWORD=`aws codeartifact get-authorization-token --domain modern-energy --domain-owner 448597705503 --query authorizationToken --output text --region us-east-1` && \
-	export TWINE_REPOSITORY_URL=`aws codeartifact get-repository-endpoint --domain modern-energy --domain-owner 448597705503 --repository pypi --format pypi --query repositoryEndpoint --output text --region us-east-1` && \
-	echo "running twine" && \
-	python3 -m twine upload sdk/python/bin/dist/*
+	python3 -m twine upload sdk/python/bin/dist/* \
+		-u aws \
+		--repository-url https://modern-energy-448597705503.d.codeartifact.us-east-1.amazonaws.com/pypi/pypi/
 
+publish_all:: publish_plugin publish_python_sdk publish_nodejs_sdk

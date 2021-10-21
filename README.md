@@ -1,176 +1,95 @@
-# xyz Pulumi Component Provider (TypeScript)
+# Pulumi Local Exec
 
-This repo is a boilerplate showing how to create a Pulumi component provider written in TypeScript. You can search-replace `xyz` with the name of your desired provider as a starting point for creating a component provider for your component resources.
+This is a multi-language
+[Pulumi Package](https://www.pulumi.com/docs/guides/pulumi-packages/)
+that allows local commands to be executed as Pulumi resources.
 
-An example `StaticPage` [component resource](https://www.pulumi.com/docs/intro/concepts/resources/#components) is available in `provider/cmd/pulumi-resource-xyz/staticPage.ts`. This component creates a static web page hosted in an AWS S3 Bucket. There is nothing special about `StaticPage` -- it is a typical component resource written in TypeScript.
+Ultimately, it is built on top of the Node `child_process.exec` [function](https://nodejs.org/api/child_process.html#child_processexeccommand-options-callback).
 
-The component provider makes component resources available to other languages. The implementation is in `provider/cmd/pulumi-resource-xyz/provider.ts`. Each component resource in the provider must have an implementation in the `construct` method to create an instance of the requested component resource and return its `URN` and state (outputs). There is an initial implementation that demonstrates an implementation of `construct` for the example `StaticPage` component.
+## Installation
 
-A code generator is available which generates SDKs in TypeScript, Python, Go and .NET which are also checked in to the `sdk` folder. The SDKs are generated from a schema in `schema.json`. This file should be kept aligned with the component resources supported by the component provider implementation.
+Add the package to your Pulumi project.
+- Node: `@modern-energy/pulumi-local-exec`
+- Python: `pulumi_local_exec`
 
-An example of using the `StaticPage` component in TypeScript is in `examples/simple`.
+Make sure you are logged into AWS CodeArtifact. See the instructions
+in the [Shared Infrastructure](https://github.com/modern-energy/infrastructure#artifact-repositories) repo.
 
-Note that the provider plugin (`pulumi-resource-xyz`) must be on your `PATH` to be used by Pulumi deployments. In this case, `pulumi-resource-xyz` is a platform-specific binary that includes its Node.js dependency along with the provider code, created using [nexe](https://github.com/nexe/nexe). By default, running `make install` will create the binary specific to your host environment, but you can override the binary target by passing in `make install target=<targe-string>` where `target-string` is a [valid nexe target](https://github.com/nexe/nexe#target-string--object).
+You may be prompted to install the plugin. If so, you will need to run
+the command that Pulumi prompts you with, supplying in addition a
+`--server`parameter and giving it the value `https://s3.amazonaws.com/packages.modern.energy/public/pulumi-local-exec/`
 
-After running `make install`, `pulumi-resource-xyz` will be available in the `./bin` directory. You can add this to your path in bash with `export PATH=$PATH:$PWD/bin`.
+For example:
 
-If creating a provider for distribution to other users, they will need `pulumi-resource-xyz` directory on their `PATH`. See the Packaging section below for more on distributing the provider to users.
-
-## Prerequisites
-
-- Pulumi CLI
-- Node.js
-- Yarn
-- Go 1.15 (to regenerate the SDKs)
-- Python 3.6+ (to build the Python SDK)
-- .NET Core SDK (to build the .NET SDK)
-
-## Build and Test
-
-```bash
-# Build and install the provider
-make install_provider
-
-# Regenerate SDKs
-make generate
-
-# Ensure the pulumi-provider-xyz script is on PATH
-$ export PATH=$PATH:$PWD/bin
-
-# Test Node.js SDK
-$ make install_nodejs_sdk
-$ cd examples/simple
-$ yarn install
-$ yarn link @pulumi/xyz
-$ pulumi stack init test
-$ pulumi config set aws:region us-east-1
-$ pulumi up
+```
+pulumi plugin install resource local-exec v0.2.0 --server https://s3.amazonaws.com/packages.modern.energy/public/pulumi-local-exec/
 ```
 
-## Naming
+## Usage
 
-The `xyz` provider's plugin must be named `pulumi-resource-xyz` (in the format `pulumi-resource-<provider>`).
+Use the `Command` resource provided by this package. It exposes the following properties:
 
-While the provider plugin must follow this naming convention, the SDK package naming can be customized. TODO explain.
+- `command` - Required. The shell command to execute.
+- `timeout` - Optional. Milliseconds the command is allowed to run
+  before it is terminated via SIGKILL. Note that the system cannot
+  tell the difference between a command terminated due to a timeout or
+  some other cause, so the error message might not make it apparent
+  that the command failed due to a timeout.
+- `shell` - Optional. The shell interpreter to use to execute the
+  command. Defaults to `/bin/sh` on unix-like systemss.
+- `cwd` - Optional. The directory in which to evaluate the
+  command. Defaults to the current directory of the Pulumi process
+  (usually the directory of your Pulumi project.)
+- `env` - Optional. Environment variable names and values to pass to
+  the child process.
 
-## Packaging
+The provided command will execute during the resource's `create` phase.
 
-The provider plugin can be packaged into a tarball and hosted at a custom server URL to make it easier to distribute to users.
+A change in any of the properties other than `timeout` will force the
+resource to be re-created, and the local command to be executed again.
 
-Currently, three tarball files are necessary for Linux, macOS, and Windows (`pulumi-resource-xyz-v0.0.1-linux-amd64.tar.gz`, `pulumi-resource-xyz-v0.0.1-darwin-amd64.tar.gz`, `pulumi-resource-xyz-v0.0.1-windows-amd64.tar.gz`) each containing the same file: the platform-specific binary `pulumi-resource-xyz` created in the `./bin` directory after running `make install_provider`. These artifacts can be generated automatically in the `dist` directory using `make dist`.
+If the input properties do not change, the resource will not be
+re-created, and the command will not be re-evaluated.
 
-TODO explain custom server hosting in more detail.
+### Typescript Example
 
-## Example component
+```
+import * as local_exec from "@modern-energy/pulumi-local-exec";
 
-Let's look at the example `StaticPage` component resource in more detail.
+const cmd = new local_exec.Command("test", {
+    command: "echo $MSG",
+    env: {"MSG": "Hello, world!"}
+});
 
-### Schema
-
-The example `StaticPage` component resource is defined in `schema.json`:
-
-```json
-"resources": {
-    "xyz:index:StaticPage": {
-        "isComponent": true,
-        "inputProperties": {
-            "indexContent": {
-                "type": "string",
-                "description": "The HTML content for index.html."
-            }
-        },
-        "requiredInputs": [
-            "indexContent"
-        ],
-        "properties": {
-            "bucket": {
-                "$ref": "/aws/v3.30.0/schema.json#/resources/aws:s3%2Fbucket:Bucket",
-                "description": "The bucket resource."
-            },
-            "websiteUrl": {
-                "type": "string",
-                "description": "The website URL."
-            }
-        },
-        "required": [
-            "bucket",
-            "websiteUrl"
-        ]
-    }
-}
+exports.stdout = cmd.stdout
 ```
 
-The component resource's type token is `xyz:index:StaticPage` in the format of `<package>:<module>:<type>`. In this case, it's in the `xyz` package and `index` module. This is the same type token passed inside the implementation of `StaticPage` in `provider/cmd/pulumi-resource-xyz/staticPage.ts`, and also the same token referenced in `construct` in `provider/cmd/pulumi-resource-xyz/provider.ts`.
+### Python Example
 
-This component has a required `indexContent` input property typed as `string`, and two required output properties: `bucket` and `websiteUrl`. Note that `bucket` is typed as the `aws:s3/bucket:Bucket` resource from the `aws` provider (in the schema the `/` is escaped as `%2F`).
+```
+import pulumi_local_exec
 
-Since this component returns a type from the `aws` provider, each SDK must reference the associated Pulumi `aws` SDK for the language. For the .NET, Node.js, and Python SDKs, dependencies are specified in the `language` section of the schema:
+cmd = pulumi_local_exec.Command('test',
+                                command='echo $MSG',
+                                env={'MSG': 'Hello, world!'})
 
-```json
-"language": {
-    "csharp": {
-        "packageReferences": {
-            "Pulumi": "2.*",
-            "Pulumi.Aws": "3.*"
-        }
-    },
-    "nodejs": {
-        "dependencies": {
-            "@pulumi/aws": "^3.30.0"
-        },
-        "devDependencies": {
-            "typescript": "^3.7.0"
-        }
-    },
-    "python": {
-        "requires": {
-            "pulumi": ">=2.21.2,<3.0.0",
-            "pulumi-aws": ">=3.30.0,<4.0.0"
-        }
-    }
-}
+pulumi.export('output', cmd.stdout)
 ```
 
-For the Go SDK, dependencies are specified in the `sdk/go.mod` file.
+## Development
 
-### Implementation
+This project is loosely based on Pulumi's [template for a Component
+Package] (https://github.com/pulumi/pulumi-component-provider-ts-boilerplate)
 
-The implementation of this component is in `provider/cmd/pulumi-resource-xyz/staticPage.ts` and the structure of the component's inputs and outputs aligns with what is defined in `schema.json`:
+See the [Makefile](/Makefile) for the structure of the build.
 
-```typescript
-export interface StaticPageArgs {
-    indexContent: pulumi.Input<string>;
-}
+To deploy an updated version to Modern Energy's artifact repositories:
 
-export class StaticPage extends pulumi.ComponentResource {
-    public readonly bucket: aws.s3.Bucket;
-    public readonly websiteUrl: pulumi.Output<string>;
+1. Ensure you have Yarn installed and available on your path.
+1. Ensure you have Twine installed and available in your default/current Python environment.
+1. Update the `VERSION` variable at the top of the Makefile
+1. Ensure you have AWS credentials for a Modern Energy account in your environment
+1. Ensure you are logged in to Modern Energy's `npm` and `PyPI`
+   CodeArtifact repositories, for use with `npm` and `twine`.
+1. Run `make publish_all`.
 
-    constructor(name: string, args: StaticPageArgs, opts?: pulumi.ComponentResourceOptions) {
-        super("xyz:index:StaticPage", name, args, opts);
-
-        ...
-    }
-}
-```
-
-The provider makes this component resource available in the `construct` method in `provider/cmd/pulumi-resource-xyz/provider.ts`. When `construct` is called and the `type` argument is `xyz:index:StaticPage`, we create an instance of the `StaticPage` component resource and return its `URN` and outputs as its state.
-
-
-```typescript
-async function constructStaticPage(name: string, inputs: pulumi.Inputs,
-    options: pulumi.ComponentResourceOptions): Promise<provider.ConstructResult> {
-
-    // Create the component resource.
-    const staticPage = new StaticPage(name, inputs as StaticPageArgs, options);
-
-    // Return the component resource's URN and outputs as its state.
-    return {
-        urn: staticPage.urn,
-        state: {
-            bucket: staticPage.bucket,
-            websiteUrl: staticPage.websiteUrl,
-        },
-    };
-}
-```
