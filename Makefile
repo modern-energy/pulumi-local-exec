@@ -1,4 +1,4 @@
-VERSION         := 0.0.1
+VERSION         := 0.1.4
 
 PACK            := local-exec
 PROJECT         := github.com/modern-energy/pulumi-${PACK}
@@ -94,6 +94,10 @@ build_nodejs_sdk:: gen_nodejs_sdk
 install_nodejs_sdk:: build_nodejs_sdk
 	yarn link --cwd ${WORKING_DIR}/sdk/nodejs/bin
 
+deploy_nodejs_sdk:: build_nodejs_sdk
+		yarn publish --cwd ${WORKING_DIR}/sdk/nodejs/bin --new-version ${VERSION} \
+                 --registry https://modern-energy-448597705503.d.codeartifact.us-east-1.amazonaws.com/npm/npm/
+
 
 # Python SDK
 
@@ -110,3 +114,11 @@ build_python_sdk:: gen_python_sdk
 		sed -i.bak -e "s/\$${VERSION}/${PYPI_VERSION}/g" -e "s/\$${PLUGIN_VERSION}/${VERSION}/g" ./bin/setup.py && \
 		rm ./bin/setup.py.bak && \
 		cd ./bin && python3 setup.py build sdist
+
+deploy_python_sdk:: build_python_sdk
+	export TWINE_USERNAME=aws && \
+	export TWINE_PASSWORD=`aws codeartifact get-authorization-token --domain modern-energy --domain-owner 448597705503 --query authorizationToken --output text --region us-east-1` && \
+	export TWINE_REPOSITORY_URL=`aws codeartifact get-repository-endpoint --domain modern-energy --domain-owner 448597705503 --repository pypi --format pypi --query repositoryEndpoint --output text --region us-east-1` && \
+	echo "running twine" && \
+	python3 -m twine upload sdk/python/bin/dist/*
+
