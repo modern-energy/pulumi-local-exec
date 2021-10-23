@@ -1,7 +1,7 @@
-VERSION         := 0.0.1
+VERSION         := 0.2.0
 
-PACK            := xyz
-PROJECT         := github.com/pulumi/pulumi-${PACK}
+PACK            := local-exec
+PROJECT         := github.com/modern-energy/pulumi-${PACK}
 
 PROVIDER        := pulumi-resource-${PACK}
 CODEGEN         := pulumi-gen-${PACK}
@@ -12,11 +12,11 @@ SCHEMA_PATH     := ${WORKING_DIR}/schema.json
 
 override target := "14.15.3"
 
-generate:: gen_go_sdk gen_dotnet_sdk gen_nodejs_sdk gen_python_sdk
+generate:: gen_nodejs_sdk gen_python_sdk
 
-build:: build_provider build_dotnet_sdk build_nodejs_sdk build_python_sdk
+build:: build_provider build_nodejs_sdk build_python_sdk
 
-install:: install_provider install_dotnet_sdk install_nodejs_sdk
+install:: install_provider install_nodejs_sdk
 
 # Ensure all dependencies are installed
 ensure::
@@ -48,32 +48,35 @@ dist:: ensure
 	for TARGET in "darwin-amd64" "win-amd64" "linux-amd64"; do \
 		rm -rf ./bin && mkdir bin && \
 		npx nexe build/index.js -t "$${TARGET}-14.15.3" -o bin/${PROVIDER} && \
-		tar -czvf "dist/$(PROVIDER)-v$(VERSION)-$${TARGET}.tar.gz" bin; \
+		tar --directory bin -czvf "dist/$(PROVIDER)-v$(VERSION)-$${TARGET}.tar.gz" .; \
 	done
+
+publish_plugin:: dist
+	aws s3 sync --acl bucket-owner-full-control dist/ s3://packages.modern.energy/public/pulumi-local-exec/
 
 # Go SDK
 
-gen_go_sdk::
-	rm -rf sdk/go
-	cd provider/cmd/${CODEGEN} && go run . go ../../../sdk/go ${SCHEMA_PATH}
+# gen_go_sdk::
+# 	rm -rf sdk/go
+# 	cd provider/cmd/${CODEGEN} && go run . go ../../../sdk/go ${SCHEMA_PATH}
 
 
-# .NET SDK
+# # .NET SDK
 
-gen_dotnet_sdk::
-	rm -rf sdk/dotnet
-	cd provider/cmd/${CODEGEN} && go run . dotnet ../../../sdk/dotnet ${SCHEMA_PATH}
+# gen_dotnet_sdk::
+# 	rm -rf sdk/dotnet
+# 	cd provider/cmd/${CODEGEN} && go run . dotnet ../../../sdk/dotnet ${SCHEMA_PATH}
 
-build_dotnet_sdk:: DOTNET_VERSION := ${VERSION}
-build_dotnet_sdk:: gen_dotnet_sdk
-	cd sdk/dotnet/ && \
-		echo "${DOTNET_VERSION}" >version.txt && \
-		dotnet build /p:Version=${DOTNET_VERSION}
+# build_dotnet_sdk:: DOTNET_VERSION := ${VERSION}
+# build_dotnet_sdk:: gen_dotnet_sdk
+# 	cd sdk/dotnet/ && \
+# 		echo "${DOTNET_VERSION}" >version.txt && \
+# 		dotnet build /p:Version=${DOTNET_VERSION}
 
-install_dotnet_sdk:: build_dotnet_sdk
-	rm -rf ${WORKING_DIR}/nuget
-	mkdir -p ${WORKING_DIR}/nuget
-	find . -name '*.nupkg' -print -exec cp -p {} ${WORKING_DIR}/nuget \;
+# install_dotnet_sdk:: build_dotnet_sdk
+# 	rm -rf ${WORKING_DIR}/nuget
+# 	mkdir -p ${WORKING_DIR}/nuget
+# 	find . -name '*.nupkg' -print -exec cp -p {} ${WORKING_DIR}/nuget \;
 
 
 # Node.js SDK
@@ -94,6 +97,11 @@ build_nodejs_sdk:: gen_nodejs_sdk
 install_nodejs_sdk:: build_nodejs_sdk
 	yarn link --cwd ${WORKING_DIR}/sdk/nodejs/bin
 
+publish_nodejs_sdk:: build_nodejs_sdk
+	echo "publishing to NPM..." && \
+    yarn publish --cwd ${WORKING_DIR}/sdk/nodejs/bin --new-version ${VERSION} \
+                 --registry https://modern-energy-448597705503.d.codeartifact.us-east-1.amazonaws.com/npm/npm/
+
 
 # Python SDK
 
@@ -110,3 +118,11 @@ build_python_sdk:: gen_python_sdk
 		sed -i.bak -e "s/\$${VERSION}/${PYPI_VERSION}/g" -e "s/\$${PLUGIN_VERSION}/${VERSION}/g" ./bin/setup.py && \
 		rm ./bin/setup.py.bak && \
 		cd ./bin && python3 setup.py build sdist
+
+publish_python_sdk:: build_python_sdk
+	export TWINE_PASSWORD=`aws codeartifact get-authorization-token --domain modern-energy --domain-owner 448597705503 --query authorizationToken --output text --region us-east-1` && \
+	python3 -m twine upload sdk/python/bin/dist/* \
+		-u aws \
+		--repository-url https://modern-energy-448597705503.d.codeartifact.us-east-1.amazonaws.com/pypi/pypi/
+
+publish_all:: publish_plugin publish_python_sdk publish_nodejs_sdk

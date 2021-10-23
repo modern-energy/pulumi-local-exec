@@ -1,8 +1,9 @@
-import * as xyz from "@pulumi/xyz";
+import * as local_exec from "@modern-energy/pulumi-local-exec";
 
-const page = new xyz.StaticPage("page", {
-    indexContent: "<html><body><p>Hello world!</p></body></html>",
+const cmd = new local_exec.Command("test", {
+    command: "echo $MSG",
+    env: {"MSG": "Hello, world!"}
 });
 
-export const bucket = page.bucket;
-export const url = page.websiteUrl;
+exports.stdout = cmd.stdout
+exports.stderr = cmd.stderr
