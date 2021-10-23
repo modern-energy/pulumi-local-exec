@@ -15,7 +15,7 @@
 import * as pulumi from "@pulumi/pulumi";
 import * as provider from "@pulumi/pulumi/provider";
 const uuid = require("uuid");
-const child_process = require('child_process');
+const child_process = require("child_process");
 
 export interface CommandProperties {
     command: pulumi.Input<string>;
