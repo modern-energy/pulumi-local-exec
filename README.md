@@ -53,8 +53,10 @@ The provided command will execute during the resource's `create` phase.
 A change in any of the properties other than `timeout` will force the
 resource to be re-created, and the local command to be executed again.
 
-If the input properties do not change, the resource will not be
-re-created, and the command will not be re-evaluated.
+For any given invocation of `pulumi up` if the input properties have not
+changed since the last time the resource was created (and the command executed)
+then the resource will not be re-created, and therefore the command will not be
+executed during that invocation.
 
 ### Typescript Example
 
