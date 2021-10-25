@@ -16,6 +16,7 @@ import * as pulumi from "@pulumi/pulumi";
 import * as provider from "@pulumi/pulumi/provider";
 const uuid = require("uuid");
 const child_process = require("child_process");
+const process = require("process");
 
 export interface CommandProperties {
     command: pulumi.Input<string>;
@@ -40,6 +41,10 @@ interface CommandResult {
 }
 
 async function execute(urn: pulumi.URN, inputs: CommandState): Promise<CommandResult> {
+
+    if (inputs.env) {
+        inputs.env = Object.assign({}, process.env, inputs.env)
+    }
 
     let p = new Promise(resolve => {
         child_process.exec(inputs.command, inputs, (error: Error, stdout: string, stderr: string) => {
