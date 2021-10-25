@@ -42,12 +42,13 @@ interface CommandResult {
 
 async function execute(urn: pulumi.URN, inputs: CommandState): Promise<CommandResult> {
 
-    if (inputs.env) {
-        inputs.env = Object.assign({}, process.env, inputs.env)
-    }
+    var args = {timeout: inputs.timeout,
+                shell: inputs.shell,
+                cwd: inputs.cwd,
+                env: Object.assign({}, process.env, inputs.env)}
 
     let p = new Promise(resolve => {
-        child_process.exec(inputs.command, inputs, (error: Error, stdout: string, stderr: string) => {
+        child_process.exec(inputs.command, args, (error: Error, stdout: string, stderr: string) => {
             resolve( { error: error,
                        stdout: stdout,
                        stderr: stderr } );
