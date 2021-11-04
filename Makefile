@@ -1,4 +1,4 @@
-VERSION         := 0.2.1
+VERSION         := 0.2.2
 
 PACK            := local-exec
 PROJECT         := github.com/modern-energy/pulumi-${PACK}
