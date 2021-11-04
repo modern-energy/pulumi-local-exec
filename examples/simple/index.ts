@@ -2,16 +2,19 @@ import * as pulumi from "@pulumi/pulumi"
 import * as local_exec from "@modern-energy/pulumi-local-exec";
 
 
-const command_str = pulumi.output("env")
-const val = pulumi.output("some-value")
-
-console.log("value:", val)
-
-const cmd = new local_exec.Command("test", {
-    command: command_str,
-    env: {"MSG": "Hello, world!",
-          "OUTPUT": val}
+// This example works
+const working = new local_exec.Command("working-example", {
+    command: pulumi.output("echo hello")
 });
 
-exports.stdout = cmd.stdout
-exports.stderr = cmd.stderr
+// this example fails
+const failing = new local_exec.Command("failing-example", {
+    command: pulumi.secret("echo hello")
+});
+
+
+exports.workingOut = working.stdout
+exports.workingErr = working.stderr
+
+exports.failingOut = failing.stdout
+exports.failingEerr = failing.stderr
