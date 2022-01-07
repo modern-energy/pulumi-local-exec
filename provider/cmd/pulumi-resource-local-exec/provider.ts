@@ -14,6 +14,7 @@
 
 import * as pulumi from "@pulumi/pulumi";
 import * as provider from "@pulumi/pulumi/provider";
+import * as rpc from "@pulumi/pulumi/runtime/rpc";
 const uuid = require("uuid");
 const child_process = require("child_process");
 const process = require("process");
@@ -90,6 +91,18 @@ function envEqual(o1: any, o2: any) {
     return true;
 }
 
+function deserializeAndDecryptProperties(inputs: any): any {
+    const props: any = {};
+    for (const k of Object.keys(inputs)) {
+        // We treat properties with undefined values as if they do not exist.
+        if (inputs[k] !== undefined) {
+            props[k] = rpc.unwrapRpcSecret(rpc.deserializeProperty(inputs[k]));;
+        }
+    }
+    return props;
+}
+
+
 export class Provider implements provider.Provider {
     constructor(readonly version: string) { }
 
@@ -97,6 +110,9 @@ export class Provider implements provider.Provider {
                 olds: CommandProperties,
                 news: CommandProperties): Promise<provider.CheckResult> {
         const failures = []
+
+        olds = deserializeAndDecryptProperties(olds);
+        news = deserializeAndDecryptProperties(news);
 
         if(!news.command) {
             failures.push({property: "command",
@@ -111,6 +127,8 @@ export class Provider implements provider.Provider {
     async create(urn: pulumi.URN,
                  inputs: CommandState): Promise<provider.CreateResult> {
 
+        inputs = deserializeAndDecryptProperties(inputs)
+
         const result = await execute(urn, inputs)
 
         return { id: uuid.v4(),
@@ -122,6 +140,9 @@ export class Provider implements provider.Provider {
                urn: pulumi.URN,
                olds: CommandState,
                news: CommandState): Promise<provider.DiffResult> {
+
+        olds = deserializeAndDecryptProperties(olds);
+        news = deserializeAndDecryptProperties(news);
 
         let replace = false;
         let replacementProperties = [];
