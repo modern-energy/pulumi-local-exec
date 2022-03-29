@@ -32,7 +32,7 @@ build_provider:: ensure
 	sed -i.bak -e "s/\$${VERSION}/$(VERSION)/g" ./build/index.js && \
 	rm ./build/index.js.bak && \
 	rm -rf ./bin && mkdir bin && \
-	npx nexe build/index.js -t $(target) -o bin/${PROVIDER}
+	npx nexe build/index.js --build -t $(target) -o bin/${PROVIDER}
 
 install_provider:: build_provider
 
