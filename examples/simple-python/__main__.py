@@ -3,13 +3,15 @@
 import pulumi
 import pulumi_local_exec
 
-command_str = pulumi.Output.from_input("env")
-msg_str = pulumi.Output.from_input("Hello world!")
+cmd1 = pulumi.Output.from_input("echo $MSG")
+arg1 = pulumi.Output.from_input("echo hello")
 
-msg_str_2 = msg_str.apply(lambda x: x.upper())
+output1 = pulumi_local_exec.Command('test1',
+                                    command=cmd1,
+                                    env={'MSG': arg1.apply(lambda x: x.upper())})
 
-cmd = pulumi_local_exec.Command('test',
-                                command=command_str,
-                                env={'THE_MSG2': msg_str_2})
+output2 = pulumi_local_exec.Command('test2',
+                                    command=output1.stdout)
 
-pulumi.export('output', cmd.stdout)
+pulumi.export('output1', output1.stdout)
+pulumi.export('output2', output1.stdout)
