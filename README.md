@@ -1,3 +1,5 @@
+NOTE: This project is deprecated in favor of the official Pulumi package which serves the same purpose: https://www.pulumi.com/registry/packages/command/
+
 # Pulumi Local Exec
 
 This is a multi-language
